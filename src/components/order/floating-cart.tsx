@@ -1,13 +1,14 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, X, Minus, Plus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, X, Minus, Plus, ArrowRight, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/stores/cart-store';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { VegBadge } from '@/components/shared/veg-badge';
+import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 
 interface FloatingCartProps {
@@ -23,6 +24,9 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
     breakfastItems,
     getDinnerTotal,
     getBreakfastTotal,
+    getSubtotal,
+    getGstAmount,
+    getPackagingFee,
     getGrandTotal,
     getTotalItems,
     updateDinnerQuantity,
@@ -32,6 +36,9 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
   } = useCartStore();
 
   const totalItems = getTotalItems();
+  const subtotal = getSubtotal();
+  const gstAmount = getGstAmount();
+  const packagingFee = getPackagingFee();
   const grandTotal = getGrandTotal();
 
   if (totalItems === 0) return null;
@@ -46,7 +53,7 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
         className="fixed bottom-20 right-6 z-40 sm:bottom-8 sm:right-8"
       >
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger className="gradient-orange text-white font-semibold rounded-2xl shadow-2xl glow-orange px-5 py-3.5 flex items-center gap-3 hover:opacity-90 transition-all relative">
+          <SheetTrigger className="bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-3 hover:opacity-90 transition-all relative">
             <ShoppingCart className="h-5 w-5" />
             <span className="font-bold">{formatCurrency(grandTotal)}</span>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-orange-600 text-xs font-bold shadow-md">
@@ -73,7 +80,7 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between pb-1 border-b border-white/10">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-2">
-                      🍔 Dinner — McDonald&apos;s
+                      Dinner — McDonald&apos;s
                     </h4>
                     <span className="text-xs font-semibold text-white">
                       Subtotal: {formatCurrency(getDinnerTotal())}
@@ -139,7 +146,7 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between pb-1 border-b border-white/10">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-green-400 flex items-center gap-2">
-                      ☕ Breakfast
+                      Breakfast
                     </h4>
                     <span className="text-xs font-semibold text-white">
                       Subtotal: {formatCurrency(getBreakfastTotal())}
@@ -201,26 +208,46 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
               )}
             </div>
 
-            {/* Clean Fixed Drawer Footer */}
+            {/* Clean Fixed Drawer Footer with Itemized Tax Breakdown */}
             <div className="p-6 bg-zinc-900 border-t border-white/10 flex-shrink-0 space-y-4 shadow-2xl">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Grand Total</p>
-                  <p className="text-2xl font-bold text-gradient-orange">
-                    {formatCurrency(grandTotal)}
-                  </p>
+              <div className="space-y-2 text-xs text-zinc-400">
+                <div className="flex justify-between">
+                  <span>Items Subtotal</span>
+                  <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
                 </div>
-                <span className="text-xs font-bold text-white bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
-                  {totalItems} item{totalItems !== 1 ? 's' : ''}
-                </span>
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1">
+                    GST & Service Tax (5%)
+                  </span>
+                  <span className="text-white font-medium">{formatCurrency(gstAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Restaurant Packaging Fee</span>
+                  <span className="text-white font-medium">{formatCurrency(packagingFee)}</span>
+                </div>
+
+                <Separator className="bg-white/10 my-2" />
+
+                <div className="flex justify-between items-center pt-1">
+                  <div>
+                    <p className="text-xs font-semibold text-white uppercase tracking-wider">Grand Total</p>
+                    <p className="text-2xl font-bold text-orange-500 font-mono">
+                      {formatCurrency(grandTotal)}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-white bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                    {totalItems} item{totalItems !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
+
               <Button
                 onClick={() => {
                   setOpen(false);
                   router.push(nextPath);
                 }}
                 size="lg"
-                className="w-full gradient-orange text-white font-semibold rounded-2xl py-6 hover:opacity-90 transition-all text-base shadow-xl"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-6 hover:opacity-90 transition-all text-base shadow-xl"
               >
                 {nextLabel}
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -240,13 +267,13 @@ export function FloatingCart({ nextPath, nextLabel }: FloatingCartProps) {
         >
           <div className="container max-w-4xl mx-auto flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs text-muted-foreground">{totalItems} items selected</p>
-              <p className="text-lg font-bold text-gradient-orange">{formatCurrency(grandTotal)}</p>
+              <p className="text-xs text-zinc-400">{totalItems} items • Incl. 5% GST & Packaging</p>
+              <p className="text-lg font-bold text-orange-500 font-mono">{formatCurrency(grandTotal)}</p>
             </div>
             <Button
               onClick={() => router.push(nextPath)}
               size="lg"
-              className="gradient-orange text-white font-semibold rounded-2xl px-6 hover:opacity-90 shadow-xl text-sm sm:text-base"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl px-6 hover:opacity-90 shadow-xl text-sm sm:text-base"
             >
               {nextLabel}
               <ArrowRight className="ml-2 h-4 w-4" />

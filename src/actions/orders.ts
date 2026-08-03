@@ -88,7 +88,10 @@ export async function createOrder(data: {
     }
   }
 
-  const verifiedGrandTotal = verifiedDinnerTotal + verifiedBreakfastTotal;
+  const verifiedSubtotal = verifiedDinnerTotal + verifiedBreakfastTotal;
+  const verifiedGst = Math.round(verifiedSubtotal * 0.05 * 100) / 100;
+  const verifiedPackagingFee = verifiedSubtotal > 0 ? 10 : 0;
+  const verifiedGrandTotal = Math.round((verifiedSubtotal + verifiedGst + verifiedPackagingFee) * 100) / 100;
 
   const { data: settings } = await supabase
     .from('settings')

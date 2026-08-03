@@ -131,14 +131,26 @@ function ConfirmationContent() {
 
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Dinner Total</span>
+              <span className="text-zinc-400">Dinner Subtotal</span>
               <span className="text-white font-medium">{formatCurrency(Number(order.dinner_total))}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-400">Breakfast Total</span>
+              <span className="text-zinc-400">Breakfast Subtotal</span>
               <span className="text-white font-medium">{formatCurrency(Number(order.breakfast_total))}</span>
             </div>
-            <Separator className="bg-white/5" />
+            <div className="flex justify-between">
+              <span className="text-zinc-400">GST & Service Tax (5%)</span>
+              <span className="text-white font-medium">
+                {formatCurrency(Math.round((Number(order.dinner_total) + Number(order.breakfast_total)) * 0.05 * 100) / 100)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">Packaging & Handling Fee</span>
+              <span className="text-white font-medium">
+                {formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total) > 0 ? 10 : 0)}
+              </span>
+            </div>
+            <Separator className="bg-white/5 my-2" />
             <div className="flex justify-between items-center pt-1 text-sm">
               <span className="font-semibold text-white">Grand Total</span>
               <span className="text-xl font-bold text-orange-500 font-mono">

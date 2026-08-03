@@ -29,6 +29,9 @@ export default function PaymentPage() {
     breakfastItems,
     getDinnerTotal,
     getBreakfastTotal,
+    getSubtotal,
+    getGstAmount,
+    getPackagingFee,
     getGrandTotal,
     setOrderId,
     clearAll,
@@ -49,6 +52,9 @@ export default function PaymentPage() {
   const grandTotal = getGrandTotal();
   const dinnerTotal = getDinnerTotal();
   const breakfastTotal = getBreakfastTotal();
+  const subtotal = getSubtotal();
+  const gstAmount = getGstAmount();
+  const packagingFee = getPackagingFee();
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -228,9 +234,26 @@ export default function PaymentPage() {
           )}
 
           <Separator className="bg-white/10 my-3" />
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-white">Grand Total</span>
-            <span className="text-2xl font-bold text-gradient-orange">{formatCurrency(grandTotal)}</span>
+          <div className="space-y-1.5 text-xs text-zinc-400">
+            <div className="flex justify-between">
+              <span>Items Subtotal</span>
+              <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>GST & Service Tax (5%)</span>
+              <span className="text-white font-medium">{formatCurrency(gstAmount)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Restaurant Packaging Fee</span>
+              <span className="text-white font-medium">{formatCurrency(packagingFee)}</span>
+            </div>
+
+            <Separator className="bg-white/10 my-2" />
+
+            <div className="flex justify-between items-center pt-1">
+              <span className="font-semibold text-white text-base">Grand Total</span>
+              <span className="text-2xl font-bold text-orange-500 font-mono">{formatCurrency(grandTotal)}</span>
+            </div>
           </div>
         </motion.div>
 

@@ -1,23 +1,49 @@
-import { NextResponse } from 'next/server';
-import { scrapeMcDonaldsMenu } from '@/lib/menu-scraper';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { NextResponse, type NextRequest } from 'next/server';
+import { scrapeMcDonaldsMenu, parseSwiggyDapiPayload, type ScrapedMenuItem } from '@/lib/menu-scraper';
+import { createAdminClient } from '@/lib/supabase/server';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const { items, source, error } = await scrapeMcDonaldsMenu();
+    let items: ScrapedMenuItem[] = [];
+    let source = 'Swiggy Wakad DAPI';
 
-    if (error || items.length === 0) {
+    let body: any = null;
+    try {
+      body = await req.json();
+    } catch {
+      // Body may be empty for automated refresh
+    }
+
+    if (body?.payload) {
+      console.log('Received raw Swiggy DAPI payload in request body');
+      items = parseSwiggyDapiPayload(body.payload);
+      source = 'Live Swiggy Browser DAPI Import';
+    } else {
+      const result = await scrapeMcDonaldsMenu();
+      if (result.items && result.items.length > 0) {
+        items = result.items;
+        source = result.source;
+      } else {
+        return NextResponse.json({
+          success: false,
+          message: result.error || 'Live scraping blocked by Cloudflare. Use JSON import below to sync payload.',
+          source: 'database_fallback',
+        });
+      }
+    }
+
+    if (items.length === 0) {
       return NextResponse.json({
         success: false,
-        message: error || 'Live scraping blocked by provider. Fallback menu active.',
-        source: 'database_fallback',
+        message: 'No items parsed from payload. Verify valid Swiggy DAPI JSON structure.',
       });
     }
 
     const adminClient = createAdminClient() as any;
 
+    let upsertedCount = 0;
     for (const item of items) {
-      await adminClient.from('dinner_items').upsert(
+      const { error } = await adminClient.from('dinner_items').upsert(
         {
           name: item.name,
           description: item.description || null,
@@ -30,17 +56,22 @@ export async function POST() {
         },
         { onConflict: 'name' }
       );
+
+      if (!error) {
+        upsertedCount++;
+      }
     }
 
     await adminClient.from('audit_logs').insert({
       action: 'menu_refreshed_live',
       entity: 'dinner_items',
-      details: { itemCount: items.length, source },
+      details: { itemCount: upsertedCount, source },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Successfully updated ${items.length} items from ${source}`,
+      message: `Successfully synced ${upsertedCount} live items from ${source}`,
+      itemCount: upsertedCount,
       source,
     });
   } catch (err: any) {

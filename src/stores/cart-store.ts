@@ -21,9 +21,12 @@ interface CartStore {
   removeBreakfastItem: (id: string) => void;
   updateBreakfastQuantity: (id: string, quantity: number) => void;
 
-  // Totals
+  // Totals & GST Calculations
   getDinnerTotal: () => number;
   getBreakfastTotal: () => number;
+  getSubtotal: () => number;
+  getGstAmount: () => number;
+  getPackagingFee: () => number;
   getGrandTotal: () => number;
   getTotalItems: () => number;
 
@@ -109,12 +112,27 @@ export const useCartStore = create<CartStore>()(
         }
       },
 
-      // Totals
+      // Totals & GST Taxes
       getDinnerTotal: () =>
         get().dinnerItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       getBreakfastTotal: () =>
         get().breakfastItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-      getGrandTotal: () => get().getDinnerTotal() + get().getBreakfastTotal(),
+      getSubtotal: () => get().getDinnerTotal() + get().getBreakfastTotal(),
+      getGstAmount: () => {
+        const subtotal = get().getSubtotal();
+        return Math.round(subtotal * 0.05 * 100) / 100; // 5% GST
+      },
+      getPackagingFee: () => {
+        const subtotal = get().getSubtotal();
+        return subtotal > 0 ? 10 : 0; // ₹10 packaging & restaurant handling fee
+      },
+      getGrandTotal: () => {
+        return (
+          Math.round(
+            (get().getSubtotal() + get().getGstAmount() + get().getPackagingFee()) * 100
+          ) / 100
+        );
+      },
       getTotalItems: () =>
         get().dinnerItems.reduce((sum, item) => sum + item.quantity, 0) +
         get().breakfastItems.reduce((sum, item) => sum + item.quantity, 0),
