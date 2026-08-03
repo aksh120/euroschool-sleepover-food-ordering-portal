@@ -66,30 +66,21 @@ export default function AdminSettingsPage() {
     }
 
     setIsSaving(true);
-    let imageUrl = activeQR?.image_url || '';
+    const formData = new FormData();
+    if (qrFile) formData.append('qr_file', qrFile);
+    if (upiId) formData.append('upi_id', upiId);
+    if (accountHolder) formData.append('account_holder', accountHolder);
+    if (activeQR?.image_url) formData.append('existing_image_url', activeQR.image_url);
 
-    if (qrFile) {
-      const supabase = createClient();
-      const fileName = `qr_${Date.now()}.${qrFile.name.split('.').pop()}`;
-      const { data, error } = await supabase.storage.from('qr-codes').upload(fileName, qrFile);
-
-      if (error) {
-        toast.error('Failed to upload QR image to storage');
-        setIsSaving(false);
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('qr-codes').getPublicUrl(data.path);
-      imageUrl = publicUrl;
-    }
-
-    const res = await uploadQRCode(imageUrl, upiId, accountHolder);
+    const res = await uploadQRCode(formData);
     setIsSaving(false);
 
     if (res.error) {
       toast.error(res.error);
     } else {
       toast.success('QR Code & payment details updated!');
+      setQrFile(null);
+      setQrPreview(null);
       refetchQR();
     }
   };

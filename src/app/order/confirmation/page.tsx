@@ -92,6 +92,20 @@ function ConfirmationContent() {
         <p className="text-xs text-zinc-500 mt-2">Keep this ID to track your payment status</p>
       </motion.div>
 
+<motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 mb-6 flex flex-col gap-3"
+      >
+        <Link href={`/track?q=${orderId}`}>
+          <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-6">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Track Order Status
+          </Button>
+        </Link>
+      </motion.div>
+
       {/* Details Card */}
       {order && (
         <motion.div
@@ -175,12 +189,6 @@ function ConfirmationContent() {
         transition={{ delay: 0.3 }}
         className="mt-6 flex flex-col gap-3"
       >
-        <Link href={`/track?q=${orderId}`}>
-          <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-6">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Track Order Status
-          </Button>
-        </Link>
         <Link href="/">
           <Button variant="outline" className="w-full border-white/10 rounded-2xl text-zinc-300 hover:text-white">
             Return to Home

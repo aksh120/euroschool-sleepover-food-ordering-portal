@@ -35,7 +35,7 @@ export async function createOrder(data: {
     return { error: result.error.issues[0].message };
   }
 
-  const supabase = (await createClient()) as any;
+  const supabase = createAdminClient() as any;
 
   let verifiedDinnerTotal = 0;
   let verifiedBreakfastTotal = 0;
@@ -111,22 +111,41 @@ export async function createOrder(data: {
     }
   }
 
-  const { data: student, error: studentError } = await supabase
+  const studentPayload: any = {
+    full_name: data.student.full_name,
+    class: data.student.class,
+    section: data.student.section,
+    phone: data.student.phone,
+    roll_number: data.student.roll_number || null,
+    house: data.student.house || null,
+  };
+
+  if (data.student.email) {
+    studentPayload.email = data.student.email;
+  }
+
+  let { data: student, error: studentError } = await supabase
     .from('students')
-    .insert({
-      full_name: data.student.full_name,
-      class: data.student.class,
-      section: data.student.section,
-      phone: data.student.phone,
-      email: data.student.email,
-      roll_number: data.student.roll_number || null,
-      house: data.student.house || null,
-    })
+    .insert(studentPayload)
     .select()
     .single();
 
+  // If email column is not present in remote schema cache (PGRST204), retry insertion without email key
+  if (studentError && (studentError.code === 'PGRST204' || studentError.message?.includes('email'))) {
+    console.warn('email column not found in schema cache, retrying student insertion without email key...');
+    delete studentPayload.email;
+    const retry = await supabase
+      .from('students')
+      .insert(studentPayload)
+      .select()
+      .single();
+    student = retry.data;
+    studentError = retry.error;
+  }
+
   if (studentError || !student) {
-    return { error: 'Failed to save student information' };
+    console.error('Failed to save student:', studentError);
+    return { error: `Failed to save student information: ${studentError?.message || 'Database error'}` };
   }
 
   const { data: orderIdResult } = await supabase.rpc('generate_order_id');
