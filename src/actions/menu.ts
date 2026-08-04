@@ -1,38 +1,47 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
+
+const publicSupabase = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // ============================================
-// Public menu fetching (uses anon client with RLS)
+// Public menu fetching (uses direct anon client for ISR cache)
 // ============================================
 
-export async function getDinnerMenu() {
-  const supabase = (await createClient()) as any;
+export const getDinnerMenu = unstable_cache(
+  async () => {
+    const { data, error } = await publicSupabase
+      .from('dinner_items')
+      .select('*')
+      .eq('available', true)
+      .order('sort_order', { ascending: true });
 
-  const { data, error } = await supabase
-    .from('dinner_items')
-    .select('*')
-    .eq('available', true)
-    .order('sort_order', { ascending: true });
+    if (error) return [];
+    return data || [];
+  },
+  ['dinner-menu-public-cache'],
+  { revalidate: 300, tags: ['dinner-menu'] }
+);
 
-  if (error) return [];
-  return data || [];
-}
+export const getBreakfastMenu = unstable_cache(
+  async () => {
+    const { data, error } = await publicSupabase
+      .from('breakfast_items')
+      .select('*')
+      .eq('available', true)
+      .order('sort_order', { ascending: true });
 
-export async function getBreakfastMenu() {
-  const supabase = (await createClient()) as any;
-
-  const { data, error } = await supabase
-    .from('breakfast_items')
-    .select('*')
-    .eq('available', true)
-    .order('sort_order', { ascending: true });
-
-  if (error) return [];
-  return data || [];
-}
+    if (error) return [];
+    return data || [];
+  },
+  ['breakfast-menu-public-cache'],
+  { revalidate: 300, tags: ['breakfast-menu'] }
+);
 
 // ============================================
 // Admin menu management (uses service role)
@@ -66,9 +75,8 @@ export async function addDinnerItem(item: {
   name: string;
   description?: string;
   price: number;
-  category: string;
   veg_status: 'veg' | 'non-veg';
-  platform?: 'swiggy' | 'zomato' | 'manual';
+  category?: string;
   available: boolean;
   image_url?: string;
 }) {
@@ -83,10 +91,10 @@ export async function addDinnerItem(item: {
 
   const { error } = await adminClient.from('dinner_items').insert({
     ...item,
+    category: item.category || 'General',
     description: item.description || null,
     image_url: item.image_url || null,
-    platform: item.platform || 'manual',
-    restaurant_id: 'd1111111-1111-1111-1111-111111111111',
+    restaurant_id: 'a1111111-1111-1111-1111-111111111111',
     sort_order: (maxSort?.sort_order || 0) + 1,
   });
 
@@ -108,8 +116,8 @@ export async function updateDinnerItem(
     name?: string;
     description?: string;
     price?: number;
-    category?: string;
     veg_status?: 'veg' | 'non-veg';
+    category?: string;
     available?: boolean;
     image_url?: string;
   }

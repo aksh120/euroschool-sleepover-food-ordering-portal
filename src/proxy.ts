@@ -3,6 +3,18 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Fast path for public routes (e.g. /, /order/*, /track):
+  // Return response immediately without initializing Supabase auth clients on edge!
+  if (!pathname.startsWith('/admin')) {
+    const response = NextResponse.next();
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    return response;
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -53,21 +65,18 @@ export async function proxy(request: NextRequest) {
       const { data } = await supabase.auth.getUser();
       user = data?.user || null;
     } catch {
-      // Suppress refresh token errors for public visitors
+      // Suppress refresh token errors
     }
   }
 
-  const pathname = request.nextUrl.pathname;
-
   // Protect admin routes (except login)
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+  if (pathname !== '/admin/login') {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
       return NextResponse.redirect(url);
     }
 
-    // Check if user is in admin_users table via service role client
     const { data: adminUser } = await adminSupabase
       .from('admin_users')
       .select('id')
@@ -96,14 +105,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Add security headers
   supabaseResponse.headers.set('X-Frame-Options', 'DENY');
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  supabaseResponse.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=()'
-  );
 
   return supabaseResponse;
 }

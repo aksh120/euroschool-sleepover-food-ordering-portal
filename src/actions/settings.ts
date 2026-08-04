@@ -1,43 +1,52 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
+
+const publicSupabase = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // ============================================
-// Public settings (uses anon client with RLS)
+// Public settings (uses direct anon client for ISR cache)
 // ============================================
 
-export async function getSettings(): Promise<Record<string, string>> {
-  const supabase = (await createClient()) as any;
+export const getSettings = unstable_cache(
+  async (): Promise<Record<string, string>> => {
+    const { data, error } = await publicSupabase
+      .from('settings')
+      .select('*');
 
-  const { data, error } = await supabase
-    .from('settings')
-    .select('*');
+    if (error) return {};
 
-  if (error) return {};
+    const settings: Record<string, string> = {};
+    (data as any[])?.forEach((s) => {
+      settings[s.key] = s.value;
+    });
 
-  const settings: Record<string, string> = {};
-  (data as any[])?.forEach((s) => {
-    settings[s.key] = s.value;
-  });
+    return settings;
+  },
+  ['public-settings-cache'],
+  { revalidate: 300, tags: ['settings'] }
+);
 
-  return settings;
-}
+export const getActiveQRCode = unstable_cache(
+  async (): Promise<any> => {
+    const { data, error } = await publicSupabase
+      .from('qr_codes')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1)
+      .single();
 
-export async function getActiveQRCode(): Promise<any> {
-  const supabase = (await createClient()) as any;
-
-  const { data, error } = await supabase
-    .from('qr_codes')
-    .select('*')
-    .eq('is_active', true)
-    .limit(1)
-    .single();
-
-  if (error) return null;
-  return data;
-}
+    if (error) return null;
+    return data;
+  },
+  ['active-qr-code-cache'],
+  { revalidate: 300, tags: ['qr_codes'] }
+);
 
 // ============================================
 // Admin settings management
@@ -65,28 +74,35 @@ export async function updateSettings(updates: Record<string, string>): Promise<{
 }
 
 export async function uploadQRCode(formData: FormData): Promise<{ success?: boolean; error?: string }> {
-  const adminClient = createAdminClient() as any;
-
   try {
     const file = formData.get('qr_file') as File | null;
-    const upiId = (formData.get('upi_id') as string) || null;
-    const accountHolder = (formData.get('account_holder') as string) || null;
-    let imageUrl = (formData.get('existing_image_url') as string) || '';
+    const upiId = formData.get('upi_id') as string | null;
+    const accountHolder = formData.get('account_holder') as string | null;
+    const existingImageUrl = formData.get('existing_image_url') as string | null;
+
+    const adminClient = createAdminClient() as any;
+
+    let imageUrl = existingImageUrl || null;
 
     if (file && file.size > 0) {
-      // Ensure 'qr-codes' bucket exists
+      // Ensure storage bucket exists
       const { data: buckets } = await adminClient.storage.listBuckets();
-      const hasBucket = buckets?.some((b: any) => b.name === 'qr-codes');
-      if (!hasBucket) {
-        await adminClient.storage.createBucket('qr-codes', { public: true });
+      const qrBucketExists = buckets?.some((b: any) => b.name === 'qr-codes');
+
+      if (!qrBucketExists) {
+        await adminClient.storage.createBucket('qr-codes', {
+          public: true,
+          fileSizeLimit: 5242880,
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        });
       }
 
       const fileExt = file.name.split('.').pop() || 'png';
-      const fileName = `qr_${Date.now()}.${fileExt}`;
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const fileName = `qr-code-${Date.now()}.${fileExt}`;
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-      const { data: uploadData, error: uploadError } = await adminClient.storage
+      const { error: uploadError } = await adminClient.storage
         .from('qr-codes')
         .upload(fileName, buffer, {
           contentType: file.type || 'image/png',
@@ -94,60 +110,61 @@ export async function uploadQRCode(formData: FormData): Promise<{ success?: bool
         });
 
       if (uploadError) {
-        console.error('QR upload storage error:', uploadError);
-        return { error: `Storage upload failed: ${uploadError.message}` };
+        console.error('Storage upload error:', uploadError);
+        return { error: `Failed to upload QR Image: ${uploadError.message}` };
       }
 
       const { data: publicUrlData } = adminClient.storage
         .from('qr-codes')
-        .getPublicUrl(uploadData.path);
+        .getPublicUrl(fileName);
 
-      imageUrl = publicUrlData?.publicUrl || imageUrl;
+      imageUrl = publicUrlData.publicUrl;
     }
 
+    // Deactivate old active QR codes
     await adminClient
       .from('qr_codes')
       .update({ is_active: false })
       .eq('is_active', true);
 
-    const { error } = await adminClient.from('qr_codes').insert({
-      image_url: imageUrl || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80',
-      upi_id: upiId,
-      account_holder: accountHolder,
+    // Insert new active QR code row
+    const { error: dbError } = await adminClient.from('qr_codes').insert({
+      image_url: imageUrl || '',
+      upi_id: upiId || null,
+      account_holder: accountHolder || null,
       is_active: true,
     });
 
-    if (error) return { error: error.message };
+    if (dbError) {
+      console.error('DB insert error:', dbError);
+      return { error: `Failed to save payment details: ${dbError.message}` };
+    }
 
     await adminClient.from('audit_logs').insert({
       action: 'qr_code_updated',
       entity: 'qr_codes',
-      details: { upiId, accountHolder, imageUrl },
+      details: { upi_id: upiId, account_holder: accountHolder, image_url: imageUrl },
     });
 
     revalidatePath('/admin/settings');
     revalidatePath('/order/payment');
     return { success: true };
   } catch (err: any) {
-    console.error('uploadQRCode error:', err);
-    return { error: err.message || 'Failed to update QR Code' };
+    console.error('uploadQRCode exception:', err);
+    return { error: err.message || 'An unexpected error occurred while uploading QR Code.' };
   }
 }
 
-// ============================================
-// Audit Logs
-// ============================================
-
-export async function getAuditLogs(page: number = 1, limit: number = 50): Promise<{ logs: any[]; total: number }> {
+export async function getAuditLogs(page = 1, limit = 50): Promise<{ logs: any[]; total: number }> {
   const adminClient = createAdminClient() as any;
   const offset = (page - 1) * limit;
 
-  const { data, error, count } = await adminClient
+  const { data, count, error } = await adminClient
     .from('audit_logs')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) return { logs: [], total: 0 };
-  return { logs: (data || []) as any[], total: count || 0 };
+  return { logs: data || [], total: count || 0 };
 }
