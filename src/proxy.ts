@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -42,10 +42,20 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  const cookiesList = request.cookies.getAll();
+  const hasAuthCookie = cookiesList.some(
+    (c) => c.name.includes('auth-token') || c.name.includes('sb-')
+  );
+
+  if (hasAuthCookie) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user || null;
+    } catch {
+      // Suppress refresh token errors for public visitors
+    }
+  }
 
   const pathname = request.nextUrl.pathname;
 

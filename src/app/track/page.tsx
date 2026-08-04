@@ -53,7 +53,7 @@ function OrderTrackerContent() {
   }, [initialQuery]);
 
   return (
-    <div className="min-h-screen gradient-dark text-foreground py-8 sm:py-12 px-4">
+    <div className="min-h-screen bg-[#09090b] text-foreground py-8 sm:py-12 px-4">
       <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -86,7 +86,7 @@ function OrderTrackerContent() {
           <Button
             onClick={() => handleSearch(query)}
             disabled={isSearching || !query.trim()}
-            className="gradient-orange text-white font-semibold rounded-xl px-6 h-11 hover:opacity-90 text-xs sm:text-sm"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl px-6 h-11 text-xs sm:text-sm"
           >
             {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Track Order'}
           </Button>

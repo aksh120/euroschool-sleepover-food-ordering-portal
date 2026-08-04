@@ -17,7 +17,7 @@ const cards = [
   {
     icon: Utensils,
     title: "McDonald's",
-    description: 'Dinner',
+    description: 'Wakad Dinner',
   },
   {
     icon: Coffee,
@@ -35,9 +35,9 @@ export function EventInfo() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 + index * 0.08, duration: 0.4 }}
-          className="bg-[#121215] border border-white/10 rounded-2xl p-4 text-center hover:border-white/20 transition-all duration-200"
+          className="bg-[#121215] border border-white/10 rounded-2xl p-4 text-center hover:border-orange-500/30 hover:bg-[#16161a] transition-all duration-200 group"
         >
-          <card.icon className="mx-auto h-5 w-5 text-orange-400 mb-2" />
+          <card.icon className="mx-auto h-5 w-5 text-orange-400 mb-2 group-hover:scale-110 transition-transform duration-200" />
           <p className="text-sm font-semibold text-white tracking-tight">{card.title}</p>
           <p className="mt-0.5 text-[11px] text-zinc-400">{card.description}</p>
         </motion.div>

@@ -147,11 +147,10 @@ export function MenuItemCard({
                 <Utensils className="h-16 w-16 opacity-30" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121215] via-transparent to-transparent" />
           </div>
 
           {/* Dialog Body */}
-          <div className="p-6 space-y-4 -mt-6 relative z-10">
+          <div className="p-6 space-y-4 relative z-10">
             <div className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-xl font-bold text-white font-[var(--font-heading)] leading-snug">

@@ -211,7 +211,7 @@ export default function StudentDetailsPage() {
             type="submit"
             size="lg"
             disabled={isChecking}
-            className="w-full gradient-orange text-white font-semibold rounded-2xl py-6 hover:opacity-90 transition-all"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-6 transition-all"
           >
             {isChecking ? 'Checking...' : 'Continue to Dinner Menu'}
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -244,7 +244,7 @@ export default function StudentDetailsPage() {
                 setShowDuplicateWarning(false);
                 proceedWithOrder(form.getValues());
               }}
-              className="gradient-orange text-white"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               Continue Anyway
             </Button>

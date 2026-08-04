@@ -172,7 +172,7 @@ export default function PaymentPage() {
         <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">Missing Information</h2>
         <p className="text-muted-foreground mb-6">Please complete the student details first.</p>
-        <Button onClick={() => router.push('/order/student-details')} className="gradient-orange text-white">
+        <Button onClick={() => router.push('/order/student-details')} className="bg-orange-500 hover:bg-orange-600 text-white">
           Go to Student Details
         </Button>
       </div>
@@ -285,7 +285,7 @@ export default function PaymentPage() {
             <p className="text-xs text-muted-foreground">Account: {qrCode.account_holder}</p>
           )}
 
-          <p className="text-lg font-bold text-gradient-orange mt-3">Pay {formatCurrency(grandTotal)}</p>
+          <p className="text-lg font-bold text-orange-500 mt-3">Pay {formatCurrency(grandTotal)}</p>
         </motion.div>
 
         {/* Upload Screenshot */}
@@ -347,7 +347,7 @@ export default function PaymentPage() {
           onClick={handleSubmit}
           size="lg"
           disabled={isSubmitting || !screenshotFile || !confirmed}
-          className="w-full gradient-orange text-white font-semibold rounded-2xl py-6 hover:opacity-90 transition-all disabled:opacity-50 text-base shadow-xl"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-6 transition-all disabled:opacity-50 text-base"
         >
           {isSubmitting ? 'Submitting Order...' : 'Submit Order'}
         </Button>
