@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth-guard';
+
+function sanitizeCsvCell(value: any): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value).trim();
+  if (/^[=+@-]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
 
 export async function GET(request: Request) {
   try {
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
     const reportType = searchParams.get('type') || 'orders';
 
@@ -27,7 +38,7 @@ export async function GET(request: Request) {
       csvContent = 'Order ID,Student Name,Class,Section,Phone,House,Dinner Total,Breakfast Total,Grand Total,Status,Submitted At\n';
       (orders as any[])?.forEach((o: any) => {
         const student = o.student || {};
-        csvContent += `"${o.order_id}","${student.full_name || ''}","${student.class || ''}","${student.section || ''}","${student.phone || ''}","${student.house || ''}",${o.dinner_total},${o.breakfast_total},${o.grand_total},"${o.status}","${o.created_at}"\n`;
+        csvContent += `"${sanitizeCsvCell(o.order_id)}","${sanitizeCsvCell(student.full_name)}","${sanitizeCsvCell(student.class)}","${sanitizeCsvCell(student.section)}","${sanitizeCsvCell(student.phone)}","${sanitizeCsvCell(student.house)}",${o.dinner_total},${o.breakfast_total},${o.grand_total},"${sanitizeCsvCell(o.status)}","${sanitizeCsvCell(o.created_at)}"\n`;
       });
     } else if (reportType === 'kitchen') {
       const { data: approvedOrders } = await adminClient
@@ -55,10 +66,10 @@ export async function GET(request: Request) {
 
       csvContent = 'Meal,Item Name,Quantity Needed\n';
       dinnerMap.forEach((qty, name) => {
-        csvContent += `"Dinner (McDonald's)","${name}",${qty}\n`;
+        csvContent += `"Dinner (McDonald's)","${sanitizeCsvCell(name)}",${qty}\n`;
       });
       breakfastMap.forEach((qty, name) => {
-        csvContent += `"Breakfast","${name}",${qty}\n`;
+        csvContent += `"Breakfast","${sanitizeCsvCell(name)}",${qty}\n`;
       });
     }
 
@@ -69,6 +80,6 @@ export async function GET(request: Request) {
       },
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }

@@ -2,17 +2,28 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' https: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://*.supabase.co;"
+  );
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+
   // Fast path for public routes (e.g. /, /order/*, /track):
-  // Return response immediately without initializing Supabase auth clients on edge!
-  if (!pathname.startsWith('/admin')) {
-    const response = NextResponse.next();
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    return response;
+  if (!isAdminRoute) {
+    return applySecurityHeaders(NextResponse.next());
   }
 
   let supabaseResponse = NextResponse.next({
@@ -69,12 +80,32 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Protect admin routes (except login)
-  if (pathname !== '/admin/login') {
+  // Protect admin API routes
+  if (pathname.startsWith('/api/admin')) {
+    if (!user) {
+      return applySecurityHeaders(
+        NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 })
+      );
+    }
+    const { data: adminUser } = await adminSupabase
+      .from('admin_users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!adminUser) {
+      return applySecurityHeaders(
+        NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 })
+      );
+    }
+  }
+
+  // Protect admin page routes (except login)
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
-      return NextResponse.redirect(url);
+      return applySecurityHeaders(NextResponse.redirect(url));
     }
 
     const { data: adminUser } = await adminSupabase
@@ -86,7 +117,7 @@ export async function proxy(request: NextRequest) {
     if (!adminUser) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
-      return NextResponse.redirect(url);
+      return applySecurityHeaders(NextResponse.redirect(url));
     }
   }
 
@@ -101,15 +132,11 @@ export async function proxy(request: NextRequest) {
     if (adminUser) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/dashboard';
-      return NextResponse.redirect(url);
+      return applySecurityHeaders(NextResponse.redirect(url));
     }
   }
 
-  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
-  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
-  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-  return supabaseResponse;
+  return applySecurityHeaders(supabaseResponse);
 }
 
 export const config = {

@@ -164,6 +164,12 @@ function ConfirmationContent() {
                 {formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total) > 0 ? 10 : 0)}
               </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">Swiggy Platform Fee</span>
+              <span className="text-white font-medium">
+                {formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total) > 0 ? 14 : 0)}
+              </span>
+            </div>
             <Separator className="bg-white/5 my-2" />
             <div className="flex justify-between items-center pt-1 text-sm">
               <span className="font-semibold text-white">Grand Total</span>

@@ -14,7 +14,7 @@ const features = [
   {
     icon: Receipt,
     title: "Transparent GST & Taxes",
-    description: "Itemized 5% Restaurant Service Tax + ₹10 Packaging Fee calculated automatically at checkout.",
+    description: "Itemized 5% Restaurant Service Tax + ₹10 Packaging Fee + ₹14 Swiggy Platform Fee calculated automatically.",
     color: "text-emerald-400",
     badge: "GST 5%",
   },

@@ -27,6 +27,7 @@ interface CartStore {
   getSubtotal: () => number;
   getGstAmount: () => number;
   getPackagingFee: () => number;
+  getPlatformFee: () => number;
   getGrandTotal: () => number;
   getTotalItems: () => number;
 
@@ -126,10 +127,14 @@ export const useCartStore = create<CartStore>()(
         const subtotal = get().getSubtotal();
         return subtotal > 0 ? 10 : 0; // ₹10 packaging & restaurant handling fee
       },
+      getPlatformFee: () => {
+        const subtotal = get().getSubtotal();
+        return subtotal > 0 ? 14 : 0; // ₹14 Swiggy Platform Fee
+      },
       getGrandTotal: () => {
         return (
           Math.round(
-            (get().getSubtotal() + get().getGstAmount() + get().getPackagingFee()) * 100
+            (get().getSubtotal() + get().getGstAmount() + get().getPackagingFee() + get().getPlatformFee()) * 100
           ) / 100
         );
       },
@@ -153,6 +158,11 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'euroschool-sleepover-cart',
+      partialize: (state) => ({
+        dinnerItems: state.dinnerItems,
+        breakfastItems: state.breakfastItems,
+        orderId: state.orderId,
+      }),
     }
   )
 );

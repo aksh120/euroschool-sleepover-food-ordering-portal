@@ -250,10 +250,31 @@ export default function SingleOrderPage({ params }: { params: Promise<{ id: stri
 
             <Separator className="bg-white/10" />
 
+            <div className="space-y-1.5 text-xs text-zinc-400">
+              <div className="flex justify-between">
+                <span>Items Subtotal</span>
+                <span className="text-white">{formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>GST & Service Tax (5%)</span>
+                <span className="text-white">{formatCurrency(Math.round((Number(order.dinner_total) + Number(order.breakfast_total)) * 0.05 * 100) / 100)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Packaging Fee</span>
+                <span className="text-white">{formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total) > 0 ? 10 : 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Swiggy Platform Fee</span>
+                <span className="text-white">{formatCurrency(Number(order.dinner_total) + Number(order.breakfast_total) > 0 ? 14 : 0)}</span>
+              </div>
+            </div>
+
+            <Separator className="bg-white/10" />
+
             {/* Grand Total */}
             <div className="flex justify-between items-center text-sm font-bold text-white">
               <span>Grand Total</span>
-              <span className="text-xl text-gradient-orange">{formatCurrency(Number(order.grand_total))}</span>
+              <span className="text-xl text-orange-500 font-mono">{formatCurrency(Number(order.grand_total))}</span>
             </div>
           </div>
 

@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { scrapeMcDonaldsMenu, parseSwiggyDapiPayload, type ScrapedMenuItem } from '@/lib/menu-scraper';
 import { createAdminClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAdmin();
     let items: ScrapedMenuItem[] = [];
     let source = 'Swiggy Wakad DAPI';
 

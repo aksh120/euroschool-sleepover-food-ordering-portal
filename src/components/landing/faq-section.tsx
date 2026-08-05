@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     question: "How are menu items, prices, and taxes calculated?",
-    answer: "All dinner menu items and prices are synced live directly from Swiggy (McDonald's Wakad Outlet). At checkout, standard 5% Restaurant GST and a flat ₹10 packaging fee are added transparently to your order subtotal.",
+    answer: "All dinner menu items and prices are synced live directly from Swiggy (McDonald's Wakad Outlet). At checkout, standard 5% Restaurant GST, a flat ₹10 packaging fee, and a ₹14 Swiggy Platform Fee are added transparently to your order subtotal.",
   },
   {
     question: "How do I pay for my order and upload proof?",

@@ -2,6 +2,7 @@
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath, unstable_cache } from 'next/cache';
 
 const publicSupabase = createSupabaseClient(
@@ -53,6 +54,7 @@ export const getActiveQRCode = unstable_cache(
 // ============================================
 
 export async function updateSettings(updates: Record<string, string>): Promise<{ success?: boolean; error?: string }> {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const promises = Object.entries(updates).map(([key, value]) =>
@@ -75,6 +77,7 @@ export async function updateSettings(updates: Record<string, string>): Promise<{
 
 export async function uploadQRCode(formData: FormData): Promise<{ success?: boolean; error?: string }> {
   try {
+    await requireAdmin();
     const file = formData.get('qr_file') as File | null;
     const upiId = formData.get('upi_id') as string | null;
     const accountHolder = formData.get('account_holder') as string | null;
@@ -156,6 +159,7 @@ export async function uploadQRCode(formData: FormData): Promise<{ success?: bool
 }
 
 export async function getAuditLogs(page = 1, limit = 50): Promise<{ logs: any[]; total: number }> {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
   const offset = (page - 1) * limit;
 

@@ -250,12 +250,12 @@ CREATE POLICY "Anyone can add dinner items to orders" ON order_dinner_items FOR 
 CREATE POLICY "Anyone can add breakfast items to orders" ON order_breakfast_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can create payments" ON payments FOR INSERT WITH CHECK (true);
 
--- STUDENT SELECT policies (can view their own orders by order_id)
-CREATE POLICY "Anyone can read orders" ON orders FOR SELECT USING (true);
-CREATE POLICY "Anyone can read order dinner items" ON order_dinner_items FOR SELECT USING (true);
-CREATE POLICY "Anyone can read order breakfast items" ON order_breakfast_items FOR SELECT USING (true);
-CREATE POLICY "Anyone can read students" ON students FOR SELECT USING (true);
-CREATE POLICY "Anyone can read payments" ON payments FOR SELECT USING (true);
+-- STUDENT SELECT policies (can view orders by order_id lookup)
+CREATE POLICY "Public can track order by order_id" ON orders FOR SELECT USING (order_id IS NOT NULL);
+CREATE POLICY "Public can view items of tracked order" ON order_dinner_items FOR SELECT USING (order_id IS NOT NULL);
+CREATE POLICY "Public can view breakfast items of tracked order" ON order_breakfast_items FOR SELECT USING (order_id IS NOT NULL);
+CREATE POLICY "Public can view student for tracked order" ON students FOR SELECT USING (id IS NOT NULL);
+CREATE POLICY "Public can view payment status of order" ON payments FOR SELECT USING (order_id IS NOT NULL);
 
 -- STUDENT UPDATE policies (can edit own order only when pending and not locked)
 CREATE POLICY "Anyone can update pending orders" ON orders FOR UPDATE USING (status = 'pending' AND is_locked = false);
@@ -266,7 +266,9 @@ CREATE POLICY "Anyone can update pending orders" ON orders FOR UPDATE USING (sta
 CREATE POLICY "Admins can read audit logs" ON audit_logs FOR SELECT USING (
   EXISTS (SELECT 1 FROM admin_users WHERE id = auth.uid())
 );
-CREATE POLICY "Admins can insert audit logs" ON audit_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Only authenticated admins can insert audit logs" ON audit_logs FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM admin_users WHERE id = auth.uid())
+);
 
 CREATE POLICY "Admins can manage admin users" ON admin_users FOR ALL USING (
   EXISTS (SELECT 1 FROM admin_users WHERE id = auth.uid())

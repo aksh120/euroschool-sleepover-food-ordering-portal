@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 
 // ============================================
@@ -28,6 +29,7 @@ export async function submitPayment(orderUuid: string, screenshotUrl: string, tr
 // ============================================
 
 export async function getPendingPayments(): Promise<any[]> {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data, error } = await adminClient
@@ -49,6 +51,7 @@ export async function getPendingPayments(): Promise<any[]> {
 }
 
 export async function verifyPayment(paymentId: string, action: 'verified' | 'rejected' | 'reupload_requested', remarks?: string) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const updateData: Record<string, unknown> = {

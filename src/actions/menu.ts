@@ -2,6 +2,7 @@
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath, unstable_cache } from 'next/cache';
 
 const publicSupabase = createSupabaseClient(
@@ -48,6 +49,7 @@ export const getBreakfastMenu = unstable_cache(
 // ============================================
 
 export async function getAdminDinnerMenu() {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data, error } = await adminClient
@@ -60,6 +62,7 @@ export async function getAdminDinnerMenu() {
 }
 
 export async function getAdminBreakfastMenu() {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data, error } = await adminClient
@@ -80,6 +83,7 @@ export async function addDinnerItem(item: {
   available: boolean;
   image_url?: string;
 }) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data: maxSort } = await adminClient
@@ -122,6 +126,7 @@ export async function updateDinnerItem(
     image_url?: string;
   }
 ) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { error } = await adminClient
@@ -143,6 +148,7 @@ export async function updateDinnerItem(
 }
 
 export async function deleteDinnerItem(id: string) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { error } = await adminClient
@@ -170,6 +176,7 @@ export async function addBreakfastItem(item: {
   available: boolean;
   image_url?: string;
 }) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data: maxSort } = await adminClient
@@ -210,6 +217,7 @@ export async function updateBreakfastItem(
     image_url?: string;
   }
 ) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { error } = await adminClient
@@ -231,6 +239,7 @@ export async function updateBreakfastItem(
 }
 
 export async function deleteBreakfastItem(id: string) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { error } = await adminClient

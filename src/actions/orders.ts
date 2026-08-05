@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { orderSubmissionSchema } from '@/lib/validators';
+import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 
 // ============================================
@@ -36,6 +37,24 @@ export async function createOrder(data: {
   }
 
   const supabase = createAdminClient() as any;
+
+  const { data: settings } = await supabase
+    .from('settings')
+    .select('value, key')
+    .in('key', ['ordering_deadline', 'ordering_open']);
+
+  if (settings) {
+    const deadlineSetting = (settings as any[]).find((s) => s.key === 'ordering_deadline');
+    const openSetting = (settings as any[]).find((s) => s.key === 'ordering_open');
+
+    if (openSetting?.value === 'false') {
+      return { error: 'Ordering is currently closed' };
+    }
+
+    if (deadlineSetting && new Date(deadlineSetting.value) < new Date()) {
+      return { error: 'The ordering deadline has passed' };
+    }
+  }
 
   let verifiedDinnerTotal = 0;
   let verifiedBreakfastTotal = 0;
@@ -91,25 +110,8 @@ export async function createOrder(data: {
   const verifiedSubtotal = verifiedDinnerTotal + verifiedBreakfastTotal;
   const verifiedGst = Math.round(verifiedSubtotal * 0.05 * 100) / 100;
   const verifiedPackagingFee = verifiedSubtotal > 0 ? 10 : 0;
-  const verifiedGrandTotal = Math.round((verifiedSubtotal + verifiedGst + verifiedPackagingFee) * 100) / 100;
-
-  const { data: settings } = await supabase
-    .from('settings')
-    .select('value, key')
-    .in('key', ['ordering_deadline', 'ordering_open']);
-
-  if (settings) {
-    const deadlineSetting = (settings as any[]).find((s) => s.key === 'ordering_deadline');
-    const openSetting = (settings as any[]).find((s) => s.key === 'ordering_open');
-
-    if (openSetting?.value === 'false') {
-      return { error: 'Ordering is currently closed' };
-    }
-
-    if (deadlineSetting && new Date(deadlineSetting.value) < new Date()) {
-      return { error: 'The ordering deadline has passed' };
-    }
-  }
+  const verifiedPlatformFee = verifiedSubtotal > 0 ? 14 : 0;
+  const verifiedGrandTotal = Math.round((verifiedSubtotal + verifiedGst + verifiedPackagingFee + verifiedPlatformFee) * 100) / 100;
 
   const studentPayload: any = {
     full_name: data.student.full_name,
@@ -145,7 +147,7 @@ export async function createOrder(data: {
 
   if (studentError || !student) {
     console.error('Failed to save student:', studentError);
-    return { error: `Failed to save student information: ${studentError?.message || 'Database error'}` };
+    return { error: 'Failed to save student information. Please try again.' };
   }
 
   const { data: orderIdResult } = await supabase.rpc('generate_order_id');
@@ -297,6 +299,7 @@ export async function getAdminOrders(filters?: {
   page?: number;
   limit?: number;
 }) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
   const page = filters?.page || 1;
   const limit = filters?.limit || 20;
@@ -330,6 +333,7 @@ export async function getAdminOrders(filters?: {
 }
 
 export async function getAdminOrderDetail(orderId: string) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data, error } = await adminClient
@@ -354,6 +358,7 @@ export async function updateOrderStatus(
   remarks?: string,
   rejectionReason?: string
 ) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const updateData: Record<string, unknown> = { status };
@@ -384,6 +389,7 @@ export async function bulkUpdateOrderStatus(
   status: 'approved' | 'rejected',
   remarks?: string
 ) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const updateData: Record<string, unknown> = { status };
@@ -409,6 +415,7 @@ export async function bulkUpdateOrderStatus(
 }
 
 export async function deleteOrder(orderId: string) {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { error } = await adminClient
@@ -429,6 +436,7 @@ export async function deleteOrder(orderId: string) {
 }
 
 export async function getDashboardStats() {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const [
@@ -461,6 +469,7 @@ export async function getDashboardStats() {
 }
 
 export async function getKitchenSummary() {
+  await requireAdmin();
   const adminClient = createAdminClient() as any;
 
   const { data: approvedOrders } = await adminClient

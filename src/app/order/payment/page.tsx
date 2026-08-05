@@ -32,6 +32,7 @@ export default function PaymentPage() {
     getSubtotal,
     getGstAmount,
     getPackagingFee,
+    getPlatformFee,
     getGrandTotal,
     setOrderId,
     clearAll,
@@ -55,6 +56,7 @@ export default function PaymentPage() {
   const subtotal = getSubtotal();
   const gstAmount = getGstAmount();
   const packagingFee = getPackagingFee();
+  const platformFee = getPlatformFee();
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -246,6 +248,10 @@ export default function PaymentPage() {
             <div className="flex justify-between">
               <span>Restaurant Packaging Fee</span>
               <span className="text-white font-medium">{formatCurrency(packagingFee)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Swiggy Platform Fee</span>
+              <span className="text-white font-medium">{formatCurrency(platformFee)}</span>
             </div>
 
             <Separator className="bg-white/10 my-2" />

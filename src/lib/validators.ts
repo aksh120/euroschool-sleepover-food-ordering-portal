@@ -42,8 +42,8 @@ export const orderItemSchema = z.object({
 // ============================================
 export const orderSubmissionSchema = z.object({
   student: studentFormSchema,
-  dinnerItems: z.array(orderItemSchema),
-  breakfastItems: z.array(orderItemSchema),
+  dinnerItems: z.array(orderItemSchema).max(50, 'Cannot order more than 50 dinner items'),
+  breakfastItems: z.array(orderItemSchema).max(50, 'Cannot order more than 50 breakfast items'),
   dinnerTotal: z.number().min(0),
   breakfastTotal: z.number().min(0),
   grandTotal: z.number().min(0),
