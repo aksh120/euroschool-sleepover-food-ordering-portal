@@ -9,7 +9,7 @@ export const EVENT_DATE_END = '2026-08-22T10:00:00+05:30';
 export const REPORTING_TIME = '5:00 PM';
 
 // Student form options: 11th & 12th class only, Sections A & B only
-export const CLASSES = ['11', '12'] as const;
+export const CLASSES = ['12'] as const;
 export const SECTIONS = ['A', 'B'] as const;
 
 // Order status labels and colors
